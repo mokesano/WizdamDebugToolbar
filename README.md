@@ -622,7 +622,7 @@ Lihat file [LICENSE](LICENSE) untuk teks lisensi lengkap.
 Untuk pertanyaan, bug report, atau feature request:
 
 - 📧 Email: dev@sangia.org
-- 🐛 Issue Tracker: https://github.com/mokesano/wizdam-debug-toolbar/issues
+- 🐛 Issue Tracker: https://github.com/mokesano/WizdamDebugToolbar/issues
 - 📖 Dokumentasi: README.md ini
 
 Kontribusi sangat diterima! Silakan fork repository dan buat pull request.
