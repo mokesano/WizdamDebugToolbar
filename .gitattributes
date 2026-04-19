@@ -37,3 +37,7 @@ rector.php                   export-ignore
 user_guide_src/ export-ignore
 .nojekyll       export-ignore
 phpdoc.dist.xml export-ignore
+
+# deprecated folders - not part of the library
+Wizdam_DEPRICATED/ export-ignore
+src_DEPRICATED/    export-ignore
