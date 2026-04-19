@@ -1,42 +1,18 @@
 ```
-# Dependencies
-vendor/
+# Logs and temp files
+*.log
+*.tmp
+*.swp
 
 # Environment
 .env
 .env.local
-.env.*
+.env.
 
-# Logs
-*.log
-
-# Temporary files
-*.tmp
-
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# PHP specific
-*.php~
-**/vendor/**
-composer.lock
-
-# IDE specific
+# Editors
 .vscode/
 .idea/
-*.swp
-*.swo
 
-# Build artifacts
-dist/
-build/
-*.phar
-*.so
-*.dll
-*.exe
-
-# Cache directories
-.cache/
-.php_cs.cache
+# Original rules preserved
+*.log
 ```

@@ -4,6 +4,10 @@
 
 Diekstraksi dan direkayasa ulang dari [CodeIgniter4 v4.7.2](https://github.com/codeigniter4/CodeIgniter4) agar dapat digunakan di luar ekosistem CI4 — termasuk aplikasi legacy seperti OJS 2.4.8.5 (ADODB + Smarty + PHP 8.4).
 
+![PHP Version](https://img.shields.io/badge/php-8.0+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Version](https://img.shields.io/badge/version-1.0.0-orange.svg)
+
 ---
 
 ## Daftar Isi
@@ -13,6 +17,7 @@ Diekstraksi dan direkayasa ulang dari [CodeIgniter4 v4.7.2](https://github.com/c
 - [Instalasi](#instalasi)
 - [Struktur Direktori](#struktur-direktori)
 - [Cara Penggunaan](#cara-penggunaan)
+  - [Inisialisasi Dasar](#inisialisasi-dasar)
   - [Integrasi OJS (Output Buffering)](#1-integrasi-ojs-output-buffering)
   - [Integrasi Database ADODB](#2-integrasi-database-adodb)
   - [Integrasi PSR-15 Middleware](#3-integrasi-psr-15-middleware)
@@ -21,6 +26,7 @@ Diekstraksi dan direkayasa ulang dari [CodeIgniter4 v4.7.2](https://github.com/c
 - [Konfigurasi](#konfigurasi)
 - [Menambah Collector Baru](#menambah-collector-baru)
 - [Kompatibilitas Framework](#kompatibilitas-framework)
+- [Troubleshooting](#troubleshooting)
 - [Atribusi & Lisensi](#atribusi--lisensi)
 
 ---
@@ -28,15 +34,30 @@ Diekstraksi dan direkayasa ulang dari [CodeIgniter4 v4.7.2](https://github.com/c
 ## Fitur
 
 - **Framework-agnostic** — tidak bergantung pada CI4, Laravel, Slim, atau framework apapun
-- **Database query logging** — mendukung ADODB, PDO, dan Doctrine via interface
-- **Timeline & benchmark** — visualisasi waktu eksekusi per segmen kode
-- **Route inspector** — menampilkan page, op, dan parameter request saat ini
-- **View render tracker** — mencatat setiap template yang di-render beserta durasinya
-- **Request history** — menyimpan riwayat N request terakhir
-- **PSR-3 log viewer** — menampilkan log dari logger apapun yang kompatibel PSR-3
-- **Dua mode integrasi** — output buffering (untuk OJS/legacy) dan PSR-15 middleware
+- **10 Collectors Built-in:**
+  - ⏱️ **Timers** — Benchmark & timeline eksekusi kode
+  - 💾 **Database** — Query logging dengan support ADODB, PDO, Doctrine
+  - 🛣️ **Routes** — Inspector route (page, op, parameters)
+  - 📄 **Views** — Template render tracker dengan durasi
+  - 📁 **Files** — Daftar file yang di-include/required
+  - 🔥 **Events** — Event listener & trigger tracker
+  - 📝 **Logs** — PSR-3 log viewer
+  - ⚙️ **Config** — Informasi konfigurasi aplikasi
+  - 📜 **History** — Riwayat N request terakhir
+- **Dua mode integrasi:**
+  - Output buffering (untuk OJS/legacy)
+  - PSR-15 middleware (untuk aplikasi modern)
+- **Adapters built-in:**
+  - `AdodbDatabaseAdapter` — Integrasi native dengan ADODB
+  - `WizdamRouterAdapter` — Integrasi dengan Wizdam Router
+- **Interfaces untuk ekstensibilitas:**
+  - `DatabaseAdapterInterface`, `RouterInterface`, `TemplateEngineInterface`, `CollectorInterface`
+- **UI Modern:**
+  - Dark mode otomatis (mengikuti preferensi sistem)
+  - Responsive design
+  - AJAX-based history navigation
+  - Real-time toolbar injection
 - **PHP 8.0–8.4 compatible** — diuji di PHP 8.4 dengan OJS 2.4.8.5
-- **Dark mode** — mengikuti preferensi sistem pengguna secara otomatis
 
 ---
 
@@ -59,30 +80,30 @@ Tidak ada dependensi Composer yang wajib. Dependensi opsional:
 ### Via Composer (direkomendasikan)
 
 ```bash
-composer require sangia/wizdam-debug-toolbar
+composer require wizdamdebug/debug-toolbar
 ```
 
 ### Dari repository (development)
 
 ```bash
 # Tambahkan repository ke composer.json proyek Anda
-composer config repositories.wizdam-debugbar vcs https://github.com/sangia/wizdam-debug-toolbar.git
+composer config repositories.wizdam-debug-toolbar vcs https://github.com/sangia/wizdam-debug-toolbar.git
 
 # Install versi development
-composer require sangia/wizdam-debug-toolbar:@dev
+composer require wizdamdebug/debug-toolbar:@dev
 ```
 
 ### Manual (tanpa Composer)
 
 1. Download atau clone repository ini
-2. Salin folder `src/` ke direktori library proyek Anda
-3. Daftarkan namespace `Wizdam\DebugBar\` ke autoloader Anda:
+2. Salin folder `src/`, `config/`, `public/`, dan `views/` ke direktori library proyek Anda
+3. Daftarkan namespace `WizdamDebugToolbar\` ke autoloader Anda:
 
 ```php
 // Di file bootstrap/autoload manual
 spl_autoload_register(function (string $class): void {
-    $prefix = 'Wizdam\\DebugBar\\';
-    $base   = __DIR__ . '/libs/wizdam-debugbar/src/';
+    $prefix = 'WizdamDebugToolbar\\';
+    $base   = __DIR__ . '/libs/wizdam-debug-toolbar/src/';
 
     if (str_starts_with($class, $prefix)) {
         $file = $base . str_replace('\\', '/', substr($class, strlen($prefix))) . '.php';
@@ -98,37 +119,39 @@ spl_autoload_register(function (string $class): void {
 ## Struktur Direktori
 
 ```
-wizdam-debugbar/
+wizdam-debug-toolbar/
 ├── src/
-│   ├── DebugBar.php                    # Engine utama
-│   ├── Interfaces/
-│   │   ├── CollectorInterface.php      # Kontrak dasar semua collector
-│   │   ├── DatabaseAdapterInterface.php # Kontrak database (ADODB/PDO)
-│   │   ├── RouterInterface.php          # Kontrak router
-│   │   └── TemplateEngineInterface.php  # Kontrak template engine
-│   ├── Collectors/
+│   ├── DebugToolbar.php                    # Engine utama (~20KB)
+│   ├── Middleware/
+│   │   └── DebugToolbarMiddleware.php      # PSR-15 + output buffering
+│   ├── Collectors/                         # 10 collectors
 │   │   ├── BaseCollector.php
+│   │   ├── TimersCollector.php
 │   │   ├── DatabaseCollector.php
 │   │   ├── RoutesCollector.php
 │   │   ├── ViewsCollector.php
-│   │   ├── TimersCollector.php
 │   │   ├── FilesCollector.php
-│   │   ├── LogsCollector.php
 │   │   ├── EventsCollector.php
+│   │   ├── LogsCollector.php
 │   │   ├── ConfigCollector.php
 │   │   └── HistoryCollector.php
-│   ├── Adapters/
-│   │   ├── AdodbDatabaseAdapter.php    # Untuk OJS / ADODB
-│   │   └── OjsRouterAdapter.php        # Untuk OJS 2.4.8.5
-│   └── Middleware/
-│       └── DebugToolbarMiddleware.php  # PSR-15 + output buffering
+│   ├── Adapters/                           # 2 adapters
+│   │   ├── AdodbDatabaseAdapter.php        # Untuk OJS / ADODB
+│   │   └── WizdamRouterAdapter.php         # Untuk Wizdam Router
+│   └── Interfaces/                         # 4 interfaces
+│       ├── CollectorInterface.php
+│       ├── DatabaseAdapterInterface.php
+│       ├── RouterInterface.php
+│       └── TemplateEngineInterface.php
+├── config/
+│   └── wizdamtoolbar.php                   # File konfigurasi
 ├── public/
-│   ├── toolbar.css
-│   ├── toolbar.js
-│   ├── toolbarloader.js
-│   └── toolbarstandalone.js
+│   ├── toolbar.css                         # ~19KB
+│   ├── toolbar.js                          # ~29KB
+│   ├── toolbarloader.js                    # ~4KB
+│   └── toolbarstandalone.js                # ~2KB
 ├── views/
-│   ├── toolbar.tpl.php
+│   ├── toolbar.tpl.php                     # Main template
 │   ├── _config.tpl
 │   ├── _database.tpl
 │   ├── _events.tpl
@@ -136,15 +159,27 @@ wizdam-debugbar/
 │   ├── _history.tpl
 │   ├── _logs.tpl
 │   └── _routes.tpl
-├── config/
-│   └── debugbar.php
 ├── composer.json
-└── README.md
+├── README.md
+├── LICENSE
+└── SECURITY.md
 ```
+
+**Catatan:** Folder `Wizdam_DEPRICATED/` dan `src_DEPRICATED/` tidak termasuk dalam distribusi package.
 
 ---
 
 ## Cara Penggunaan
+
+### Inisialisasi Dasar
+
+```php
+use WizdamDebugToolbar\DebugToolbar;
+
+$config = require 'config/wizdamtoolbar.php';
+$toolbar = new DebugToolbar($config);
+$toolbar->run();
+```
 
 ### 1. Integrasi OJS (Output Buffering)
 
@@ -155,13 +190,14 @@ Tambahkan tiga baris di file bootstrap utama aplikasi Anda (misalnya `index.php`
 <?php
 
 // Di bagian PALING ATAS index.php, sebelum require/include apapun
-use Wizdam\DebugBar\DebugBar;
-use Wizdam\DebugBar\Middleware\DebugToolbarMiddleware;
+use WizdamDebugToolbar\DebugToolbar;
+use WizdamDebugToolbar\Middleware\DebugToolbarMiddleware;
 
 // Hanya aktifkan di environment development
 if (defined('WIZDAM_DEBUG') && WIZDAM_DEBUG === true) {
-    $debugBar   = new DebugBar();
-    $middleware = new DebugToolbarMiddleware($debugBar);
+    $config     = require 'config/wizdamtoolbar.php';
+    $toolbar    = new DebugToolbar($config);
+    $middleware = new DebugToolbarMiddleware($toolbar);
     $middleware->startBuffer(); // mulai menangkap output
 }
 
@@ -196,7 +232,7 @@ Buat wrapper tipis di atas koneksi ADODB OJS:
 ```php
 <?php
 
-use Wizdam\DebugBar\Adapters\AdodbDatabaseAdapter;
+use WizdamDebugToolbar\Adapters\AdodbDatabaseAdapter;
 
 class WizdamAdodbConnection extends ADOConnection
 {
@@ -220,17 +256,17 @@ class WizdamAdodbConnection extends ADOConnection
 Kemudian daftarkan adapter ke collector:
 
 ```php
-use Wizdam\DebugBar\Adapters\AdodbDatabaseAdapter;
-use Wizdam\DebugBar\Collectors\DatabaseCollector;
+use WizdamDebugToolbar\Adapters\AdodbDatabaseAdapter;
+use WizdamDebugToolbar\Collectors\DatabaseCollector;
 
 $dbAdapter = new AdodbDatabaseAdapter();
-$debugBar->addCollector(new DatabaseCollector($dbAdapter));
+$toolbar->addCollector(new DatabaseCollector($dbAdapter));
 ```
 
 #### Cara B — Logging manual (untuk kasus khusus)
 
 ```php
-use Wizdam\DebugBar\Adapters\AdodbDatabaseAdapter;
+use WizdamDebugToolbar\Adapters\AdodbDatabaseAdapter;
 
 $start  = microtime(true);
 $result = $dbconn->Execute($sql, $params);
@@ -246,20 +282,23 @@ AdodbDatabaseAdapter::logQuery($sql, $ms, $params ?? []);
 Untuk aplikasi modern yang sudah memiliki stack middleware PSR-15:
 
 ```php
-use Wizdam\DebugBar\DebugBar;
-use Wizdam\DebugBar\Middleware\DebugToolbarMiddleware;
+use WizdamDebugToolbar\DebugToolbar;
+use WizdamDebugToolbar\Middleware\DebugToolbarMiddleware;
 
 // Inisialisasi
-$debugBar = new DebugBar();
+$config  = require 'config/wizdamtoolbar.php';
+$toolbar = new DebugToolbar($config);
 
 // Tambahkan ke stack middleware PSR-15
-$app->add(new DebugToolbarMiddleware($debugBar));
+$app->add(new DebugToolbarMiddleware($toolbar));
 ```
 
 Atau gunakan mode `process()` manual:
 
 ```php
-$middleware = new DebugToolbarMiddleware($debugBar);
+$config   = require 'config/wizdamtoolbar.php';
+$toolbar  = new DebugToolbar($config);
+$middleware = new DebugToolbarMiddleware($toolbar);
 
 $htmlOutput = $middleware->process($_REQUEST, function (array $request): string {
     // handler aplikasi Anda — harus return string HTML
@@ -275,32 +314,34 @@ echo $htmlOutput;
 
 Collector adalah kelas yang mengumpulkan data tertentu untuk ditampilkan di toolbar.
 
-| Collector | Keterangan | Dependency CI4 |
+| Collector | Keterangan | Dependency |
 |:---|:---|:---|
+| `TimersCollector` | Benchmark / timeline eksekusi | Tidak ada |
 | `DatabaseCollector` | Query log, durasi, duplikat | `DatabaseAdapterInterface` |
 | `RoutesCollector` | Route saat ini, controller, params | `RouterInterface` |
 | `ViewsCollector` | Template yang di-render, durasi render | `TemplateEngineInterface` |
-| `TimersCollector` | Benchmark / timeline eksekusi | Tidak ada |
 | `FilesCollector` | File yang di-load, penggunaan memori | Tidak ada |
-| `LogsCollector` | Output logger (PSR-3 compatible) | Tidak ada |
 | `EventsCollector` | Timeline event listener | Tidak ada |
+| `LogsCollector` | Output logger (PSR-3 compatible) | Tidak ada |
 | `ConfigCollector` | Nilai konfigurasi dan ENV vars | Tidak ada |
 | `HistoryCollector` | Riwayat N request terakhir | PSR-16 / file storage |
 
 ### Menambah atau menonaktifkan collector
 
 ```php
-use Wizdam\DebugBar\DebugBar;
-use Wizdam\DebugBar\Collectors\TimersCollector;
-use Wizdam\DebugBar\Collectors\DatabaseCollector;
+use WizdamDebugToolbar\DebugToolbar;
+use WizdamDebugToolbar\Collectors\TimersCollector;
+use WizdamDebugToolbar\Collectors\DatabaseCollector;
 
-$debugBar = new DebugBar([
+$config = [
     'collectors' => [
         TimersCollector::class,
         DatabaseCollector::class,
         // tambahkan hanya yang Anda butuhkan
     ],
-]);
+];
+
+$toolbar = new DebugToolbar($config);
 ```
 
 ---
@@ -321,7 +362,7 @@ Adapter menghubungkan collector dengan implementasi spesifik framework atau libr
 
 | Adapter | Target | Status |
 |:---|:---|:---|
-| `OjsRouterAdapter` | OJS 2.4.8.5 (`$_REQUEST['page'/'op']`) | ✅ Tersedia |
+| `WizdamRouterAdapter` | Wizdam Router | ✅ Tersedia |
 | `SlimRouterAdapter` | Slim Framework 4 | 🔧 Planned |
 | `LaravelRouterAdapter` | Laravel 10+ | 🔧 Planned |
 
@@ -332,7 +373,9 @@ Implementasikan interface yang sesuai:
 ```php
 <?php
 
-use Wizdam\DebugBar\Interfaces\DatabaseAdapterInterface;
+namespace MyApp\Adapters;
+
+use WizdamDebugToolbar\Interfaces\DatabaseAdapterInterface;
 
 class MyCustomDatabaseAdapter implements DatabaseAdapterInterface
 {
@@ -367,7 +410,7 @@ class MyCustomDatabaseAdapter implements DatabaseAdapterInterface
 
 ## Konfigurasi
 
-Salin dan sesuaikan file `config/debugbar.php`:
+Salin dan sesuaikan file `config/wizdamtoolbar.php`:
 
 ```php
 <?php
@@ -375,23 +418,25 @@ Salin dan sesuaikan file `config/debugbar.php`:
 return [
     // Collector yang aktif
     'collectors' => [
-        \Wizdam\DebugBar\Collectors\TimersCollector::class,
-        \Wizdam\DebugBar\Collectors\DatabaseCollector::class,
-        \Wizdam\DebugBar\Collectors\RoutesCollector::class,
-        \Wizdam\DebugBar\Collectors\FilesCollector::class,
-        \Wizdam\DebugBar\Collectors\LogsCollector::class,
-        \Wizdam\DebugBar\Collectors\HistoryCollector::class,
+        \WizdamDebugToolbar\Collectors\TimersCollector::class,
+        \WizdamDebugToolbar\Collectors\DatabaseCollector::class,
+        \WizdamDebugToolbar\Collectors\RoutesCollector::class,
+        \WizdamDebugToolbar\Collectors\FilesCollector::class,
+        \WizdamDebugToolbar\Collectors\EventsCollector::class,
+        \WizdamDebugToolbar\Collectors\LogsCollector::class,
+        \WizdamDebugToolbar\Collectors\ConfigCollector::class,
+        \WizdamDebugToolbar\Collectors\HistoryCollector::class,
     ],
 
     // Jumlah maksimum riwayat request yang disimpan
     'maxHistory' => 20,
 
     // Direktori penyimpanan file history (harus writable)
-    'historyPath' => sys_get_temp_dir() . '/wizdam-debugbar/',
+    'historyPath' => sys_get_temp_dir() . '/wizdam-debug-toolbar/',
 
     // Route yang tidak di-inject toolbar (regex pattern)
     'ignoredRoutes' => [
-        '/_wizdam-debugbar',
+        '/_wizdam-debug-toolbar',
         '/api/',
     ],
 
@@ -400,6 +445,9 @@ return [
 
     // Tema toolbar ('light', 'dark', atau 'auto')
     'theme' => 'auto',
+    
+    // Max query time untuk highlighting (ms)
+    'maxQueryTime' => 100,
 ];
 ```
 
@@ -412,9 +460,9 @@ Buat class yang mengimplementasikan `CollectorInterface`:
 ```php
 <?php
 
-namespace MyApp\Debug\Collectors;
+namespace MyApp\Collectors;
 
-use Wizdam\DebugBar\Interfaces\CollectorInterface;
+use WizdamDebugToolbar\Interfaces\CollectorInterface;
 
 class CacheCollector implements CollectorInterface
 {
@@ -448,11 +496,76 @@ class CacheCollector implements CollectorInterface
 }
 ```
 
-Daftarkan ke DebugBar:
+Daftarkan ke toolbar:
 
 ```php
-$debugBar->addCollector(new CacheCollector());
+use WizdamDebugToolbar\DebugToolbar;
+use MyApp\Collectors\CacheCollector;
+
+$config = require 'config/wizdamtoolbar.php';
+$config['collectors'][] = CacheCollector::class;
+
+$toolbar = new DebugToolbar($config);
 ```
+
+---
+
+## Troubleshooting
+
+### Toolbar tidak muncul
+
+1. **Pastikan `WIZDAM_DEBUG` didefinisikan sebagai `true`**
+   ```php
+   define('WIZDAM_DEBUG', true);
+   ```
+
+2. **Cek apakah output buffering aktif**
+   Pastikan `startBuffer()` dipanggil sebelum ada output HTML dan `endBuffer()` dipanggil setelah semua output selesai.
+
+3. **Periksa ignored routes**
+   Jika URL Anda match dengan pattern di `ignoredRoutes`, toolbar tidak akan di-inject.
+
+4. **Cek browser console untuk error JavaScript**
+   Tekan F12 > Console dan cari error terkait `toolbar.js`.
+
+### Query database tidak tercatat
+
+1. **Pastikan adapter sudah didaftarkan**
+   ```php
+   $dbAdapter = new AdodbDatabaseAdapter();
+   $toolbar->addCollector(new DatabaseCollector($dbAdapter));
+   ```
+
+2. **Untuk ADODB: Pastikan wrapper class digunakan**
+   Gunakan `WizdamAdodbConnection` atau logging manual via `AdodbDatabaseAdapter::logQuery()`.
+
+### Error "Class not found"
+
+Pastikan autoloader sudah dikonfigurasi dengan benar untuk namespace `WizdamDebugToolbar\`:
+
+```php
+spl_autoload_register(function (string $class): void {
+    $prefix = 'WizdamDebugToolbar\\';
+    // ... sesuaikan path ke folder src/
+});
+```
+
+Atau gunakan Composer autoloading:
+```bash
+composer dump-autoload
+```
+
+### History tidak tersimpan
+
+1. **Pastikan direktori `historyPath` writable**
+   ```php
+   'historyPath' => sys_get_temp_dir() . '/wizdam-debug-toolbar/',
+   ```
+   
+2. **Cek permission folder**
+   ```bash
+   chmod 755 /tmp/wizdam-debug-toolbar
+   ```
 
 ---
 
@@ -462,6 +575,7 @@ $debugBar->addCollector(new CacheCollector());
 |:---|:---|:---|:---|
 | OJS (Open Journal Systems) | 2.4.8.5 | ✅ Diuji | Database, Router |
 | PHP Native / Custom | 8.0–8.4 | ✅ Diuji | — |
+| Wizdam Router | Latest | ✅ Diuji | Router |
 | Slim Framework | 4.x | 🔧 Planned | — |
 | Laravel | 10, 11 | 🔧 Planned | — |
 | Symfony | 6, 7 | 🔧 Planned | — |
@@ -471,27 +585,50 @@ $debugBar->addCollector(new CacheCollector());
 
 ## Atribusi & Lisensi
 
-Wizdam Frontedge DebugBar diekstraksi dan direkayasa ulang dari **CodeIgniter4 v4.7.2 Debug Toolbar**, yang dikembangkan oleh [CodeIgniter Foundation](https://codeigniter.com) dan kontributornya.
+**Wizdam Debug Toolbar** diekstraksi dan direkayasa ulang dari **CodeIgniter4 v4.7.2 Debug Toolbar**, yang dikembangkan oleh [CodeIgniter Foundation](https://codeigniter.com) dan kontributornya.
 
-File-file berikut diadaptasi dari CodeIgniter4 (dengan modifikasi namespace dan penghapusan dependency framework):
+### File yang diadaptasi dari CodeIgniter4:
 - `src/Collectors/` — berdasarkan `system/Debug/Toolbar/Collectors/`
 - `views/` — berdasarkan `system/Debug/Toolbar/Views/`
-- `public/` — berdasarkan `system/Debug/Toolbar/Views/` (CSS, JS)
+- `public/` — berdasarkan `system/Debug/Toolbar/` (CSS, JS)
 
-File-file berikut dibuat baru dan tidak berasal dari CodeIgniter4:
-- `src/Interfaces/` — seluruh interface
-- `src/Adapters/` — seluruh adapter
+Semua file tersebut telah dimodifikasi dengan:
+- Perubahan namespace dari `CodeIgniter\Debug\Toolbar` ke `WizdamDebugToolbar`
+- Penghapusan dependency framework CI4
+- Adaptasi untuk standalone usage
+
+### File yang dibuat baru (tidak berasal dari CodeIgniter4):
+- `src/Interfaces/` — seluruh interface (`CollectorInterface`, `DatabaseAdapterInterface`, `RouterInterface`, `TemplateEngineInterface`)
+- `src/Adapters/` — seluruh adapter (`AdodbDatabaseAdapter`, `WizdamRouterAdapter`)
 - `src/Middleware/DebugToolbarMiddleware.php`
+- `src/DebugToolbar.php` — main engine yang direkayasa ulang
+- `config/wizdamtoolbar.php` — konfigurasi standalone
 
 ---
 
-Lisensi: **MIT**
+### Lisensi
 
-Copyright (c) 2017 [Sangia Publishing House](https://www.sangia.org)
+**MIT License**
+
+Copyright (c) 2025 [Sangia Publishing House](https://www.sangia.org)  
 Copyright (c) 2014-2024 British Columbia Institute of Technology (CodeIgniter Foundation)
 
 Lihat file [LICENSE](LICENSE) untuk teks lisensi lengkap.
 
 ---
 
+## Support & Kontribusi
+
+Untuk pertanyaan, bug report, atau feature request:
+
+- 📧 Email: dev@sangia.org
+- 🐛 Issue Tracker: https://github.com/sangia/wizdam-debug-toolbar/issues
+- 📖 Dokumentasi: README.md ini
+
+Kontribusi sangat diterima! Silakan fork repository dan buat pull request.
+
+---
+
 *Dikembangkan sebagai bagian dari ekosistem **Wizdam Frontedge** — platform penerbitan ilmiah berbasis OJS dengan arsitektur modern.*
+
+**Happy Debugging! 🐛🔍**
