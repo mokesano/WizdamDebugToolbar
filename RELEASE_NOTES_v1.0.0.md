@@ -1,6 +1,6 @@
 # 📦 Release Notes — Wizdam Debug Toolbar v1.0.0
 
-**Tanggal Rilis:** *(Isi saat rilis)*  
+**Tanggal Rilis:** *19 April 2026*  
 **Versi:** `1.0.0`  
 **Stability:** Stable  
 **License:** MIT  
