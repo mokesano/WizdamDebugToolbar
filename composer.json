@@ -47,6 +47,22 @@
             "based-on": "CodeIgniter4 4.7.2 DebugBar (MIT License)"
         }
     },
+    "archive": {
+        "exclude": [
+            "/Wizdam_DEPRICATED/",
+            "/src_DEPRICATED/",
+            "/.github/",
+            "/tests/",
+            ".editorconfig",
+            ".gitattributes",
+            ".gitignore",
+            "CODE_OF_CONDUCT.md",
+            "CONTRIBUTING.md",
+            "phpunit.dist.xml",
+            "psalm-baseline.xml",
+            "psalm.xml"
+        ]
+    },
     "minimum-stability": "stable",
     "prefer-stable": true
 }
