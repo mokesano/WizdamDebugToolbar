@@ -1,5 +1,3 @@
----
-
 # 🧰 Wizdam Debug Toolbar
 
 **Standalone, framework-agnostic debugging toolbar untuk aplikasi PHP. Diekstraksi dan direkayasa ulang dari [CodeIgniter 4 Debug Toolbar](https://github.com/codeigniter4/CodeIgniter4) agar dapat digunakan di luar ekosistem CI4 — termasuk aplikasi legacy seperti OJS 2.4.8.5.**
