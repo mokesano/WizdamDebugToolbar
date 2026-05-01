@@ -172,7 +172,7 @@ $toolbar = new DebugToolbar($config);
 ---
 
 <p align="center">
-  <sub>Dibangun dengan ❤️ sebagai bagian dari ekosistem <strong>Wizdam Frontedge</strong> — platform penerbitan ilmiah modern.</sub>
+  <credit>Dibangun dengan ❤️ sebagai bagian dari ekosistem <strong>Wizdam Frontedge</strong> — platform penerbitan ilmiah modern.</credit>
   <br><br>
   <a href="https://github.com/mokesano/WizdamDebugToolbar/stargazers"><img src="https://img.shields.io/github/stars/mokesano/WizdamDebugToolbar?style=social" alt="GitHub Stars"></a>
   <a href="https://github.com/mokesano/WizdamDebugToolbar/network/members"><img src="https://img.shields.io/github/forks/mokesano/WizdamDebugToolbar?style=social" alt="GitHub Forks"></a>
