@@ -66,6 +66,21 @@ class History extends BaseCollector
     protected $files = [];
 
     /**
+     * Path to directory containing debugbar JSON history files.
+     *
+     * @var string
+     */
+    private string $historyPath;
+
+    public function __construct(array $config = [])
+    {
+        $this->historyPath = rtrim(
+            $config['historyPath'] ?? sys_get_temp_dir() . '/wizdam-debugbar/',
+            '/\\',
+        ) . DIRECTORY_SEPARATOR;
+    }
+
+    /**
      * Specify time limit & file count for debug history.
      *
      * @param string $current Current history time
@@ -75,7 +90,7 @@ class History extends BaseCollector
      */
     public function setFiles(string $current, int $limit = 20)
     {
-        $filenames = glob(WRITEPATH . 'debugbar/debugbar_*.json');
+        $filenames = glob($this->historyPath . 'debugbar_*.json') ?: [];
 
         $files   = [];
         $counter = 0;
@@ -99,15 +114,16 @@ class History extends BaseCollector
                 $time = sprintf('%.6F', $time[1] ?? 0);
 
                 // Debugbar files shown in History Collector
+                $dt = date_create_from_format('U.u', $time);
                 $files[] = [
                     'time'        => $time,
-                    'datetime'    => DateTime::createFromFormat('U.u', $time)->format('Y-m-d H:i:s.u'),
+                    'datetime'    => $dt !== false ? $dt->format('Y-m-d H:i:s.u') : '',
                     'active'      => $time === $current,
-                    'status'      => $contents->vars->response->statusCode,
-                    'method'      => $contents->method,
-                    'url'         => $contents->url,
-                    'isAJAX'      => $contents->isAJAX ? 'Yes' : 'No',
-                    'contentType' => $contents->vars->response->contentType,
+                    'status'      => $contents->vars->response->statusCode ?? 0,
+                    'method'      => $contents->method ?? '',
+                    'url'         => $contents->url ?? '',
+                    'isAJAX'      => !empty($contents->isAJAX) ? 'Yes' : 'No',
+                    'contentType' => $contents->vars->response->contentType ?? '',
                 ];
             }
         }
@@ -146,6 +162,6 @@ class History extends BaseCollector
      */
     public function icon(): string
     {
-        return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAJySURBVEhL3ZU7aJNhGIVTpV6i4qCIgkIHxcXLErS4FBwUFNwiCKGhuTYJGaIgnRoo4qRu6iCiiIuIXXTTIkIpuqoFwaGgonUQlC5KafU5ycmNP0lTdPLA4fu+8573/a4/f6hXpFKpwUwmc9fDfweKbk+n07fgEv33TLSbtt/hvwNFT1PsG/zdTE0Gp+GFfD6/2fbVIxqNrqPIRbjg4t/hY8aztcngfDabHXbKyiiXy2vcrcPH8oDCry2FKDrA+Ar6L01E/ypyXzXaARjDGGcoeNxSDZXE0dHRA5VRE5LJ5CFy5jzJuOX2wHRHRnjbklZ6isQ3tIctBaAd4vlK3jLtkOVWqABBXd47jGHLmjTmSScttQV5J+SjfcUweFQEbsjAas5aqoCLXutJl7vtQsAzpRowYqkBinyCC8Vicb2lOih8zoldd0F8RD7qTFiqAnGrAy8stUAvi/hbqDM+YzkAFrLPdR5ZqoLXsd+Bh5YCIH7JniVdquUWxOPxDfboHhrI5XJ7HHhiqQXox+APe/Qk64+gGYVCYZs8cMpSFQj9JOoFzVqqo7k4HIvFYpscCoAjOmLffUsNUGRaQUwDlmofUa34ecsdgXdcXo4wbakBgiUFafXJV8A4DJ/2UrxUKm3E95H8RbjLcgOJRGILhnmCP+FBy5XvwN2uIPcy1AJvWgqC4xm2aU4Xb3lF4I+Tpyf8hRe5w3J7YLymSeA8Z3nSclv4WLRyFdfOjzrUFX0klJUEtZtntCNc+F69cz/FiDzEPtjzmcUMOr83kDQEX6pAJxJfpL3OX22n01YN7SZCoQnaSdoZ+Jz+PZihH3wt/xlCoT9M6nEtmRSPCQAAAABJRU5ErkJggg==';
+        return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAJySURBVEhL3ZU7aJNhGIVTpV6i4qCIgkIHxcXLErS4FBwUFNwiCKGhuTYJGaIgnRoo4qRu6iCiiIuIXXTTIkIpuqoFwaGgonUQlC5KafU5ycmNP0lTdPLA4fs+c973va4/f6hXpFKpwUwmc9fDfweKbk+n07fgEv33TLSbtt/hvwNFT1PsG/zdTE0Gp+GFfD6/2fbVIxqNrqPIRbjg4t/hY8aztcngfDabHTrKyiiXy2vcrcPH8oDCry2FKDrA+Ar6L01E/ypyXzXaARjDGGcoeNxSDZXE0dHRA5VRE5LJ5CFy5jzJuOX2wHRHRnjbklZ6isQ3tIctBaAd4vlK3jLtkOVWqABBXd47jGHLmjTmSScttQV5J+SjfcUweFQEbsjAas5aqoCLXutJl7vtQsAzpRowYqkBinyCC8Vicb2lOih8zoldd0F8RD7qTFiqAnGrAy8stUAvi/hbqDM+YzkAFrLPdR5ZqoLXsd+Bh5YCIH7JniVdquUWxOPxDfboHhrI5XJ7HHhiqQXox+APe/Qk64+gGYVCYZs8cMpSFQj9JOoFzVqqo7k4HIvFYpscCoAjOmLffUsNUGRaQUwDlmofUa34ecsdgXdcXo4wbakBgiUFafXJV8A4DJ/2UrxUKm3E95H8RbjLcgOJRGILhnmCP+FBy5XvwN2uIPcy1AJvWgqC4xm2aU4Xb3lF4I+Tpyf8hRe5w3J7YLymSeA8Z3nSclv4WLRyFdfOjzrUFX0klJUEtZtntCNc+F69cz/FiDzEPtjzmcUMOr83kDQEX6pAJxJfpL3OX22n01YN7SZCoQnaSdoZ+Jz+PZihH3wt/xlCoT9M6nEtmRSPCQAAAABJRU5ErkJggg==';
     }
 }

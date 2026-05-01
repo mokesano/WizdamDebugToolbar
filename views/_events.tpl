@@ -1,3 +1,6 @@
+<?php
+/** @var array $events */
+?>
 <table>
     <thead>
         <tr>
@@ -7,12 +10,12 @@
         </tr>
     </thead>
     <tbody>
-    {events}
+    <?php foreach ($events as $row) : ?>
         <tr>
-            <td class="narrow">{ duration } ms</td>
-            <td>{event}</td>
-            <td>{count}</td>
+            <td class="narrow"><?= htmlspecialchars($row['duration'], ENT_QUOTES, 'UTF-8') ?> ms</td>
+            <td><?= htmlspecialchars($row['event'], ENT_QUOTES, 'UTF-8') ?></td>
+            <td><?= (int) $row['count'] ?></td>
         </tr>
-    {/events}
+    <?php endforeach ?>
     </tbody>
 </table>

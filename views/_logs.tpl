@@ -1,6 +1,11 @@
-{ if $logs == [] }
-<p>Nothing was logged. If you were expecting logged items, ensure that LoggerConfig file has the correct threshold set.</p>
-{ else }
+<?php
+/** @var array $logs */
+?>
+<?php if ($logs === []) : ?>
+<p>Nothing was logged. If you were expecting logged items, call
+   <code>WizdamDebugToolbar\Collectors\Logs::addLog($level, $message)</code>
+   from your application code.</p>
+<?php else : ?>
 <table>
     <thead>
         <tr>
@@ -9,12 +14,12 @@
         </tr>
     </thead>
     <tbody>
-    {logs}
+    <?php foreach ($logs as $entry) : ?>
         <tr>
-            <td>{level}</td>
-            <td>{msg}</td>
+            <td><?= htmlspecialchars($entry['level'], ENT_QUOTES, 'UTF-8') ?></td>
+            <td><?= htmlspecialchars($entry['msg'],   ENT_QUOTES, 'UTF-8') ?></td>
         </tr>
-    {/logs}
+    <?php endforeach ?>
     </tbody>
 </table>
-{ endif }
+<?php endif ?>

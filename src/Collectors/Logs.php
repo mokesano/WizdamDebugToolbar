@@ -25,6 +25,10 @@ namespace WizdamDebugToolbar\Collectors;
  * Logs collector
  *
  * Adapted from CodeIgniter 4 to be framework-agnostic.
+ *
+ * Usage:
+ *   Logs::addLog('error', 'Something went wrong');
+ *   Logs::addLog('info',  'User logged in');
  */
 class Logs extends BaseCollector
 {
@@ -53,11 +57,23 @@ class Logs extends BaseCollector
     protected $title = 'Logs';
 
     /**
-     * Our collected data.
-     *
      * @var list<array{level: string, msg: string}>
      */
-    protected $data = [];
+    private static array $logCache = [];
+
+    /**
+     * Add a log entry.
+     *
+     * @param string $level PSR-3 log level: emergency, alert, critical, error, warning, notice, info, debug
+     * @param string $msg   Log message
+     */
+    public static function addLog(string $level, string $msg): void
+    {
+        self::$logCache[] = [
+            'level' => $level,
+            'msg'   => $msg,
+        ];
+    }
 
     /**
      * Returns the data of this collector to be formatted in the toolbar.
@@ -66,9 +82,7 @@ class Logs extends BaseCollector
      */
     public function display(): array
     {
-        return [
-            'logs' => $this->collectLogs(),
-        ];
+        return ['logs' => self::$logCache];
     }
 
     /**
@@ -76,9 +90,7 @@ class Logs extends BaseCollector
      */
     public function isEmpty(): bool
     {
-        $this->collectLogs();
-
-        return $this->data === [];
+        return self::$logCache === [];
     }
 
     /**
@@ -92,20 +104,10 @@ class Logs extends BaseCollector
     }
 
     /**
-     * Ensures the data has been collected.
-     *
-     * @return list<array{level: string, msg: string}>
+     * Reset all log entries.
      */
-    protected function collectLogs()
+    public static function reset(): void
     {
-        if ($this->data !== []) {
-            return $this->data;
-        }
-
-        $cache = service('logger')->logCache;
-
-        $this->data = $cache ?? [];
-
-        return $this->data;
+        self::$logCache = [];
     }
 }

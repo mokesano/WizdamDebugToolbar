@@ -1,34 +1,39 @@
+<?php
+/**
+ * @var array $matchedRoute
+ * @var array $routes
+ */
+?>
 <h3>Matched Route</h3>
 
 <table>
     <tbody>
-    {matchedRoute}
+    <?php foreach ($matchedRoute as $route) : ?>
         <tr>
             <td>Directory:</td>
-            <td>{directory}</td>
+            <td><?= htmlspecialchars($route['directory'], ENT_QUOTES, 'UTF-8') ?></td>
         </tr>
         <tr>
             <td>Controller:</td>
-            <td>{controller}</td>
+            <td><?= htmlspecialchars($route['controller'], ENT_QUOTES, 'UTF-8') ?></td>
         </tr>
         <tr>
             <td>Method:</td>
-            <td>{method}</td>
+            <td><?= htmlspecialchars($route['method'], ENT_QUOTES, 'UTF-8') ?></td>
         </tr>
         <tr>
             <td>Params:</td>
-            <td>{paramCount} / {truePCount}</td>
+            <td><?= (int) $route['paramCount'] ?> / <?= (int) $route['truePCount'] ?></td>
         </tr>
-        {params}
+        <?php foreach ($route['params'] as $param) : ?>
             <tr class="route-params-item">
-                <td>{name}</td>
-                <td>{value}</td>
+                <td><?= htmlspecialchars($param['name'],  ENT_QUOTES, 'UTF-8') ?></td>
+                <td><?= htmlspecialchars((string) $param['value'], ENT_QUOTES, 'UTF-8') ?></td>
             </tr>
-        {/params}
-    {/matchedRoute}
+        <?php endforeach ?>
+    <?php endforeach ?>
     </tbody>
 </table>
-
 
 <h3>Defined Routes</h3>
 
@@ -41,12 +46,18 @@
         </tr>
     </thead>
     <tbody>
-    {routes}
-        <tr>
-            <td>{method}</td>
-            <td data-debugbar-route="{method}">{route}</td>
-            <td>{handler}</td>
-        </tr>
-    {/routes}
+    <?php if ($routes === []) : ?>
+        <tr><td colspan="3" class="muted">No defined routes registered.</td></tr>
+    <?php else : ?>
+        <?php foreach ($routes as $route) : ?>
+            <tr>
+                <td><?= htmlspecialchars($route['method'],  ENT_QUOTES, 'UTF-8') ?></td>
+                <td data-debugbar-route="<?= htmlspecialchars($route['method'], ENT_QUOTES, 'UTF-8') ?>">
+                    <?= htmlspecialchars($route['route'],   ENT_QUOTES, 'UTF-8') ?>
+                </td>
+                <td><?= htmlspecialchars($route['handler'], ENT_QUOTES, 'UTF-8') ?></td>
+            </tr>
+        <?php endforeach ?>
+    <?php endif ?>
     </tbody>
 </table>

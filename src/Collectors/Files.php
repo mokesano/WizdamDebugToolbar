@@ -25,6 +25,8 @@ namespace WizdamDebugToolbar\Collectors;
  * Files collector
  *
  * Adapted from CodeIgniter 4 to be framework-agnostic.
+ * Lists all PHP files loaded during this request, separated into
+ * "vendor / core" files and "user application" files.
  */
 class Files extends BaseCollector
 {
@@ -70,9 +72,9 @@ class Files extends BaseCollector
         $userFiles = [];
 
         foreach ($rawFiles as $file) {
-            $path = clean_path($file);
+            $path = $this->normalizePath($file);
 
-            if (str_contains($path, 'SYSTEMPATH')) {
+            if ($this->isCoreFile($path)) {
                 $coreFiles[] = [
                     'path' => $path,
                     'name' => basename($file),
@@ -110,5 +112,22 @@ class Files extends BaseCollector
     public function icon(): string
     {
         return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGBSURBVEhL7ZQ9S8NQGIVTBQUncfMfCO4uLgoKbuKQOWg+OkXERRE1IAXrIHbVDrqIDuLiJgj+gro7S3dnpfq88b1FMTE3VZx64HBzzvvZWxKnj15QCcPwCD5HUfSWR+JtzgmtsUcQBEva5IIm9SwSu+95CAWbUuy67qBa32ByZEDpIaZYZSZMjjQuPcQUq8yEyYEb8FSerYeQVGbAFzJkX1PyQWLhgCz0BxTCekC1Wp0hsa6yokzhed4oje6Iz6rlJEkyIKfUEFtITVtQdAibn5rMyaYsMS+a5wTv8qeXMhcU16QZbKgl3hbs+L4/pnpdc87MElZgq10p5DxGdq8I7xrvUWUKvG3NbSK7ubngYzdJwSsF7TiOh9VOgfcEz1UayNe3JUPM1RWC5GXYgTfc75B4NBmXJnAtTfpABX0iPvEd9ezALwkplCFXcr9styiNOKc1RRZpaPM9tcqBwlWzGY1qPL9wjqRBgF5BH6j8HWh2S7MHlX8PrmbK+k/8PzjOOzx1D3i1pKTTAAAAAElFTkSuQmCC';
+    }
+
+    /**
+     * Convert backslashes to forward slashes for uniform display.
+     */
+    private function normalizePath(string $file): string
+    {
+        return str_replace('\\', '/', $file);
+    }
+
+    /**
+     * Heuristic: files inside a vendor/ directory are "core/library" files;
+     * everything else is considered a user application file.
+     */
+    private function isCoreFile(string $normalizedPath): bool
+    {
+        return str_contains($normalizedPath, '/vendor/');
     }
 }

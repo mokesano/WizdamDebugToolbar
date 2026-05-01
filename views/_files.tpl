@@ -1,16 +1,22 @@
+<?php
+/**
+ * @var array $userFiles
+ * @var array $coreFiles
+ */
+?>
 <table>
     <tbody>
-    {userFiles}
+    <?php foreach ($userFiles as $file) : ?>
         <tr>
-            <td>{name}</td>
-            <td>{path}</td>
+            <td><?= htmlspecialchars($file['name'], ENT_QUOTES, 'UTF-8') ?></td>
+            <td><?= htmlspecialchars($file['path'], ENT_QUOTES, 'UTF-8') ?></td>
         </tr>
-    {/userFiles}
-    {coreFiles}
+    <?php endforeach ?>
+    <?php foreach ($coreFiles as $file) : ?>
         <tr class="muted">
-            <td class="debug-bar-width20e">{name}</td>
-            <td>{path}</td>
+            <td class="debug-bar-width20e"><?= htmlspecialchars($file['name'], ENT_QUOTES, 'UTF-8') ?></td>
+            <td><?= htmlspecialchars($file['path'], ENT_QUOTES, 'UTF-8') ?></td>
         </tr>
-    {/coreFiles}
+    <?php endforeach ?>
     </tbody>
 </table>

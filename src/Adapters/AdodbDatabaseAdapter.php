@@ -57,19 +57,21 @@ class AdodbDatabaseAdapter implements DatabaseAdapterInterface
      * Catat satu query ke dalam log.
      * Dipanggil dari kode aplikasi saat query dieksekusi.
      *
-     * @param string $sql      Query SQL yang dieksekusi
-     * @param float  $duration Durasi dalam milidetik
-     * @param array  $params   Bind parameter (opsional)
+     * @param string     $sql       Query SQL yang dieksekusi
+     * @param float      $duration  Durasi dalam milidetik
+     * @param array      $params    Bind parameter (opsional)
+     * @param float|null $startTime microtime(true) saat query dimulai (untuk timeline)
      */
-    public static function logQuery(string $sql, float $duration, array $params = []): void
+    public static function logQuery(string $sql, float $duration, array $params = [], ?float $startTime = null): void
     {
         $sql = trim($sql);
 
         self::$queries[] = [
-            'sql'      => $sql,
-            'duration' => round($duration, 4),
-            'params'   => $params,
-            'trace'    => self::buildShortTrace(),
+            'sql'       => $sql,
+            'duration'  => round($duration, 4),
+            'params'    => $params,
+            'trace'     => self::buildShortTrace(),
+            'startTime' => $startTime ?? (microtime(true) - $duration / 1000.0),
         ];
 
         self::$totalTime += $duration;

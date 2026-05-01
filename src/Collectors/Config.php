@@ -27,18 +27,20 @@ namespace WizdamDebugToolbar\Collectors;
  * Adapted from CodeIgniter 4 to be framework-agnostic.
  * Returns basic PHP and environment information.
  */
-class Config extends BaseCollector
+class Config
 {
     /**
      * Return toolbar config values as an array.
      */
-    public static function display(): array
+    public static function display(array $config = []): array
     {
         return [
             'phpVersion'  => PHP_VERSION,
             'phpSAPI'     => PHP_SAPI,
             'timezone'    => date_default_timezone_get(),
             'serverOS'    => PHP_OS,
+            'baseURL'     => $config['baseURL'] ?? '',
+            'environment' => $config['environment'] ?? '',
         ];
     }
 }
