@@ -114,11 +114,10 @@ class History extends BaseCollector
                 $time = sprintf('%.6F', $time[1] ?? 0);
 
                 // Debugbar files shown in History Collector
+                $dt = date_create_from_format('U.u', $time);
                 $files[] = [
                     'time'        => $time,
-                    'datetime'    => \DateTime::createFromFormat('U.u', $time) !== false
-                        ? \DateTime::createFromFormat('U.u', $time)->format('Y-m-d H:i:s.u')
-                        : '',
+                    'datetime'    => $dt !== false ? $dt->format('Y-m-d H:i:s.u') : '',
                     'active'      => $time === $current,
                     'status'      => $contents->vars->response->statusCode ?? 0,
                     'method'      => $contents->method ?? '',
