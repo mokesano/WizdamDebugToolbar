@@ -186,13 +186,13 @@ class BaseCollector
     }
 
     /**
-     * This makes nicer looking paths for the error output.
+     * Normalize a file path for display (forward slashes, no trailing sep).
      *
-     * @deprecated Use the dedicated `clean_path()` function.
+     * @deprecated No longer needed — paths are normalized per-collector.
      */
     public function cleanPath(string $file): string
     {
-        return clean_path($file);
+        return str_replace('\\', '/', $file);
     }
 
     /**

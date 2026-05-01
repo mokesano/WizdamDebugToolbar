@@ -25,7 +25,11 @@ namespace WizdamDebugToolbar\Collectors;
  * Views collector
  *
  * Adapted from CodeIgniter 4 to be framework-agnostic.
- * Works with any template engine via manual logging.
+ *
+ * Usage:
+ *   $start = microtime(true);
+ *   // ... render template ...
+ *   Views::logView('article/view.tpl', $start, microtime(true), $templateData);
  */
 class Views extends BaseCollector
 {
@@ -70,22 +74,26 @@ class Views extends BaseCollector
     protected $title = 'Views';
 
     /**
-     * Instance of the shared Renderer service
-     *
-     * @var RendererInterface|null
+     * @var list<array{view: string, start: float, end: float, data: array}>
      */
-    protected $viewer;
+    private static array $renderedViews = [];
 
     /**
-     * Views counter
+     * Log a rendered view.
      *
-     * @var array
+     * @param string $view  Template name / path
+     * @param float  $start microtime(true) before rendering
+     * @param float  $end   microtime(true) after rendering
+     * @param array  $data  Variables passed to the template (optional)
      */
-    protected $views = [];
-
-    private function initViewer(): void
+    public static function logView(string $view, float $start, float $end, array $data = []): void
     {
-        $this->viewer ??= service('renderer');
+        self::$renderedViews[] = [
+            'view'  => $view,
+            'start' => $start,
+            'end'   => $end,
+            'data'  => $data,
+        ];
     }
 
     /**
@@ -94,13 +102,9 @@ class Views extends BaseCollector
      */
     protected function formatTimelineData(): array
     {
-        $this->initViewer();
-
         $data = [];
 
-        $rows = $this->viewer->getPerformanceData();
-
-        foreach ($rows as $info) {
+        foreach (self::$renderedViews as $info) {
             $data[] = [
                 'name'      => 'View: ' . $info['view'],
                 'component' => 'Views',
@@ -114,37 +118,34 @@ class Views extends BaseCollector
 
     /**
      * Gets a collection of data that should be shown in the 'Vars' tab.
-     * The format is an array of sections, each with their own array
-     * of key/value pairs:
-     *
-     *  $data = [
-     *      'section 1' => [
-     *          'foo' => 'bar,
-     *          'bar' => 'baz'
-     *      ],
-     *      'section 2' => [
-     *          'foo' => 'bar,
-     *          'bar' => 'baz'
-     *      ],
-     *  ];
      */
     public function getVarData(): array
     {
-        $this->initViewer();
+        $merged = [];
 
-        return [
-            'View Data' => $this->viewer->getData(),
-        ];
+        foreach (self::$renderedViews as $info) {
+            foreach ($info['data'] as $key => $value) {
+                $merged[(string) $key] = $value;
+            }
+        }
+
+        return ['View Data' => $merged];
     }
 
     /**
-     * Returns a count of all views.
+     * Returns a count of all views rendered.
      */
     public function getBadgeValue(): int
     {
-        $this->initViewer();
+        return count(self::$renderedViews);
+    }
 
-        return count($this->viewer->getPerformanceData());
+    /**
+     * Does this collector have any data collected?
+     */
+    public function isEmpty(): bool
+    {
+        return self::$renderedViews === [];
     }
 
     /**
@@ -154,6 +155,14 @@ class Views extends BaseCollector
      */
     public function icon(): string
     {
-        return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADeSURBVEhL7ZSxDcIwEEWNYA0YgGmgyAaJLTcUaaBzQQEVjMEabBQxAdw53zTHiThEovGTfnE/9rsoRUxhKLOmaa6Uh7X2+UvguLCzVxN1XW9x4EYHzik033Hp3X0LO+DaQG8MDQcuq6qao4qkHuMgQggLvkPLjqh00ZgFDBacMJYFkuwFlH1mshdkZ5JPJERA9JpI6xNCBESvibQ+IURA9JpI6xNCBESvibQ+IURA9DTsuHTOrVFFxixgB/eUFlU8uKJ0eDBFOu/9EvoeKnlJS2/08Tc8NOwQ8sIfMeYFjqKDjdU2sp4AAAAASUVORK5CYII=';
+        return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADeSURBVEhL7ZSxDcIwEEWNYA0YgGmgyAaJLTcUaaBzQQEVjMEabBQxAdw53zTHiThEovGTfnE/9rsoRUxhKLOmaa6Uh7X2+UvguLCzVxN1XW9x4EYHzik033Hp3X0LO+DaQG8MDQcuq6qao4qkHuMgQggLvkPLjqh00ZgFDBacMJYFkuwFlH1mshdkZ5JPJURA9JpI6xNCBESvibQ+IURA9JpI6xNCBESvibQ+IURA9DTsuHTOrVFFxixgB/eUFlU8uKJ0eDBFOu/9EvoeKnlJS2/08Tc8NOwQ8sIfMeYFjqKDjdU2sp4AAAAASUVORK5CYII=';
+    }
+
+    /**
+     * Reset all logged views.
+     */
+    public static function reset(): void
+    {
+        self::$renderedViews = [];
     }
 }

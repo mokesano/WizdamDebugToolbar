@@ -25,6 +25,11 @@ namespace WizdamDebugToolbar\Collectors;
  * Events collector
  *
  * Adapted from CodeIgniter 4 to be framework-agnostic.
+ *
+ * Usage:
+ *   $start = microtime(true);
+ *   // ... event handler runs ...
+ *   Events::trigger('my_event', $start, microtime(true));
  */
 class Events extends BaseCollector
 {
@@ -61,6 +66,26 @@ class Events extends BaseCollector
     protected $title = 'Events';
 
     /**
+     * @var list<array{event: string, start: float, end: float}>
+     */
+    private static array $logs = [];
+
+    /**
+     * Log a triggered event.
+     *
+     * @param float $start microtime(true) before the event handler ran
+     * @param float $end   microtime(true) after the event handler returned
+     */
+    public static function trigger(string $event, float $start, float $end): void
+    {
+        self::$logs[] = [
+            'event' => $event,
+            'start' => $start,
+            'end'   => $end,
+        ];
+    }
+
+    /**
      * Child classes should implement this to return the timeline data
      * formatted for correct usage.
      */
@@ -68,9 +93,7 @@ class Events extends BaseCollector
     {
         $data = [];
 
-        $rows = \CodeIgniter\Events\Events::getPerformanceLogs();
-
-        foreach ($rows as $info) {
+        foreach (self::$logs as $info) {
             $data[] = [
                 'name'      => 'Event: ' . $info['event'],
                 'component' => 'Events',
@@ -87,15 +110,13 @@ class Events extends BaseCollector
      */
     public function display(): array
     {
-        $data = [
-            'events' => [],
-        ];
+        $events = [];
 
-        foreach (\CodeIgniter\Events\Events::getPerformanceLogs() as $row) {
+        foreach (self::$logs as $row) {
             $key = $row['event'];
 
-            if (! array_key_exists($key, $data['events'])) {
-                $data['events'][$key] = [
+            if (! array_key_exists($key, $events)) {
+                $events[$key] = [
                     'event'    => $key,
                     'duration' => ($row['end'] - $row['start']) * 1000,
                     'count'    => 1,
@@ -104,15 +125,15 @@ class Events extends BaseCollector
                 continue;
             }
 
-            $data['events'][$key]['duration'] += ($row['end'] - $row['start']) * 1000;
-            $data['events'][$key]['count']++;
+            $events[$key]['duration'] += ($row['end'] - $row['start']) * 1000;
+            $events[$key]['count']++;
         }
 
-        foreach ($data['events'] as &$row) {
+        foreach ($events as &$row) {
             $row['duration'] = number_format($row['duration'], 2);
         }
 
-        return $data;
+        return ['events' => array_values($events)];
     }
 
     /**
@@ -120,7 +141,15 @@ class Events extends BaseCollector
      */
     public function getBadgeValue(): int
     {
-        return count(\CodeIgniter\Events\Events::getPerformanceLogs());
+        return count(self::$logs);
+    }
+
+    /**
+     * Does this collector have any data collected?
+     */
+    public function isEmpty(): bool
+    {
+        return self::$logs === [];
     }
 
     /**
@@ -131,5 +160,13 @@ class Events extends BaseCollector
     public function icon(): string
     {
         return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEASURBVEhL7ZXNDcIwDIVTsRBH1uDQDdquUA6IM1xgCA6MwJUN2hk6AQzAz0vl0ETUxC5VT3zSU5w81/mRMGZysixbFEVR0jSKNt8geQU9aRpFmp/keX6AbjZ5oB74vsaN5lSzA4tLSjpBFxsjeSuRy4d2mDdQTWU7YLbXTNN05mKyovj5KL6B7q3hoy3KwdZxBlT+Ipz+jPHrBqOIynZgcZonoukb/0ckiTHqNvDXtXEAaygRbaB9FvUTjRUHsIYS0QaSp+Dw6wT4hiTmYHOcYZsdLQ2CbXa4ftuuYR4x9vYZgdb4vsFYUdmABMYeukK9/SUme3KMFQ77+Yfzh8eYF8+orDuDWU5LAAAAAElFTkSuQmCC';
+    }
+
+    /**
+     * Reset all logged events.
+     */
+    public static function reset(): void
+    {
+        self::$logs = [];
     }
 }

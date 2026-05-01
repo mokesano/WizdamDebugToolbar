@@ -25,6 +25,11 @@ namespace WizdamDebugToolbar\Collectors;
  * Timers collector
  *
  * Adapted from CodeIgniter 4 to be framework-agnostic.
+ *
+ * Usage:
+ *   Timers::start('my_block');
+ *   // ... code ...
+ *   Timers::stop('my_block');
  */
 class Timers extends BaseCollector
 {
@@ -53,6 +58,39 @@ class Timers extends BaseCollector
     protected $title = 'Timers';
 
     /**
+     * @var array<string, array{start: float, end: float|null}>
+     */
+    private static array $timers = [];
+
+    /**
+     * Start a named timer.
+     */
+    public static function start(string $name): void
+    {
+        self::$timers[$name] = ['start' => microtime(true), 'end' => null];
+    }
+
+    /**
+     * Stop a named timer.
+     */
+    public static function stop(string $name): void
+    {
+        if (isset(self::$timers[$name])) {
+            self::$timers[$name]['end'] = microtime(true);
+        }
+    }
+
+    /**
+     * Returns all recorded timers (read-only).
+     *
+     * @return array<string, array{start: float, end: float|null}>
+     */
+    public static function getTimers(): array
+    {
+        return self::$timers;
+    }
+
+    /**
      * Child classes should implement this to return the timeline data
      * formatted for correct usage.
      */
@@ -60,22 +98,29 @@ class Timers extends BaseCollector
     {
         $data = [];
 
-        $benchmark = service('timer', true);
-        $rows      = $benchmark->getTimers(6);
-
-        foreach ($rows as $name => $info) {
+        foreach (self::$timers as $name => $timer) {
             if ($name === 'total_execution') {
                 continue;
             }
 
+            $end = $timer['end'] ?? microtime(true);
+
             $data[] = [
                 'name'      => ucwords(str_replace('_', ' ', $name)),
                 'component' => 'Timer',
-                'start'     => $info['start'],
-                'duration'  => $info['end'] - $info['start'],
+                'start'     => $timer['start'],
+                'duration'  => $end - $timer['start'],
             ];
         }
 
         return $data;
+    }
+
+    /**
+     * Reset all timers (e.g. between requests in worker mode).
+     */
+    public static function reset(): void
+    {
+        self::$timers = [];
     }
 }

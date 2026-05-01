@@ -108,19 +108,13 @@ class DebugToolbarMiddleware
     // ---------------------------------------------------------------
 
     /**
-     * Inject toolbar HTML ke dalam response sebelum tag </body>.
+     * Inject toolbar script loader ke dalam response.
+     * Menggunakan DebugToolbar::prepare() yang memodifikasi response by reference.
      */
     private function inject(string $response): string
     {
-        $toolbarHtml = $this->debugBar->render();
-
-        // Inject tepat sebelum </body> agar tidak mengganggu layout
-        if (stripos($response, '</body>') !== false) {
-            return str_ireplace('</body>', $toolbarHtml . '</body>', $response);
-        }
-
-        // Fallback: tambahkan di akhir jika tidak ada </body>
-        return $response . $toolbarHtml;
+        $this->debugBar->prepare($response);
+        return $response;
     }
 
     /**

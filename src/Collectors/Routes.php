@@ -27,7 +27,9 @@ use WizdamDebugToolbar\Interfaces\RouterInterface;
  * Routes collector
  *
  * Adapted from CodeIgniter 4 to be framework-agnostic.
- * Requires a RouterInterface implementation (e.g., WizdamRouterAdapter).
+ *
+ * Usage:
+ *   Routes::setRouter(new WizdamRouterAdapter());
  */
 class Routes extends BaseCollector
 {
@@ -56,7 +58,21 @@ class Routes extends BaseCollector
     protected $title = 'Routes';
 
     /**
-     * Returns the data of this collector to be formatted in the toolbar
+     * Registered router adapter, shared across all instances.
+     */
+    private static ?RouterInterface $router = null;
+
+    /**
+     * Register the router adapter.
+     * Call this once at bootstrap before the toolbar is rendered.
+     */
+    public static function setRouter(RouterInterface $router): void
+    {
+        self::$router = $router;
+    }
+
+    /**
+     * Returns the data of this collector to be formatted in the toolbar.
      *
      * @return array{
      *      matchedRoute: list<array{
@@ -65,104 +81,61 @@ class Routes extends BaseCollector
      *          method: string,
      *          paramCount: int,
      *          truePCount: int,
-     *          params: list<array{
-     *              name: string,
-     *              value: mixed
-     *          }>
+     *          params: list<array{name: string, value: mixed}>
      *      }>,
-     *      routes: list<array{
-     *          method: string,
-     *          route: string,
-     *          handler: string
-     *      }>
+     *      routes: list<array{method: string, route: string, handler: string}>
      * }
-     *
-     * @throws ReflectionException
      */
     public function display(): array
     {
-        $rawRoutes = service('routes', true);
-        $router    = service('router', null, null, true);
-
-        // Get our parameters
-        // Closure routes
-        if (is_callable($router->controllerName())) {
-            $method = new ReflectionFunction($router->controllerName());
-        } else {
-            try {
-                $method = new ReflectionMethod($router->controllerName(), $router->methodName());
-            } catch (ReflectionException) {
-                try {
-                    // If we're here, the method doesn't exist
-                    // and is likely calculated in _remap.
-                    $method = new ReflectionMethod($router->controllerName(), '_remap');
-                } catch (ReflectionException) {
-                    // If we're here, page cache is returned. The router is not executed.
-                    return [
-                        'matchedRoute' => [],
-                        'routes'       => [],
-                    ];
-                }
-            }
+        if (self::$router === null) {
+            return [
+                'matchedRoute' => [],
+                'routes'       => [],
+            ];
         }
 
-        $rawParams = $method->getParameters();
+        $rawParams = self::$router->getParams();
+        $params    = [];
 
-        $params = [];
-
-        foreach ($rawParams as $key => $param) {
+        foreach ($rawParams as $name => $value) {
             $params[] = [
-                'name'  => '$' . $param->getName() . ' = ',
-                'value' => $router->params()[$key] ??
-                    ' <empty> | default: '
-                    . var_export(
-                        $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null,
-                        true,
-                    ),
+                'name'  => (string) $name,
+                'value' => is_scalar($value) ? (string) $value : print_r($value, true),
             ];
         }
 
         $matchedRoute = [
             [
-                'directory'  => $router->directory(),
-                'controller' => $router->controllerName(),
-                'method'     => $router->methodName(),
-                'paramCount' => count($router->params()),
+                'directory'  => '',
+                'controller' => self::$router->getController(),
+                'method'     => self::$router->getMethod(),
+                'paramCount' => count($rawParams),
                 'truePCount' => count($params),
                 'params'     => $params,
             ],
         ];
 
-        // Defined Routes
-        $routes = [];
-
-        $definedRouteCollector = new DefinedRouteCollector($rawRoutes);
-
-        foreach ($definedRouteCollector->collect() as $route) {
-            // filter for strings, as callbacks aren't displayable
-            if ($route['handler'] !== '(Closure)') {
-                $routes[] = [
-                    'method'  => strtoupper($route['method']),
-                    'route'   => $route['route'],
-                    'handler' => $route['handler'],
-                ];
-            }
-        }
-
         return [
             'matchedRoute' => $matchedRoute,
-            'routes'       => $routes,
+            'routes'       => [],
         ];
     }
 
     /**
-     * Returns a count of all the routes in the system.
+     * Returns the number of matched route entries as the badge value.
      */
     public function getBadgeValue(): int
     {
-        $rawRoutes = service('routes', true);
+        return self::$router !== null ? 1 : 0;
+    }
 
-        return count($rawRoutes->getRoutes());
+    /**
+     * Does this collector have any data collected?
+     */
+    public function isEmpty(): bool
+    {
+        return self::$router === null;
     }
 
     /**
@@ -173,5 +146,13 @@ class Routes extends BaseCollector
     public function icon(): string
     {
         return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAFDSURBVEhL7ZRNSsNQFIUjVXSiOFEcuQIHDpzpxC0IGYeE/BEInbWlCHEDLsSiuANdhKDjgm6ggtSJ+l25ldrmmTwIgtgDh/t37r1J+16cX0dRFMtpmu5pWAkrvYjjOB7AETzStBFW+inxu3KUJMmhludQpoflS1zXban4LYqiO224h6VLTHr8Z+z8EpIHFF9gG78nDVmW7UgTHKjsCyY98QP+pcq+g8Ku2s8G8X3f3/I8b038WZTp+bO38zxfFd+I6YY6sNUvFlSDk9CRhiAI1jX1I9Cfw7GG1UB8LAuwbU0ZwQnbRDeEN5qqBxZMLtE1ti9LtbREnMIuOXnyIf5rGIb7Wq8HmlZgwYBH7ORTcKH5E4mpjeGt9fBZcHE2GCQ3Vt7oTNPNg+FXLHnSsHkw/FR+Gg2bB8Ptzrst/v6C/wrH+QB+duli6MYJdQAAAABJRU5ErkJggg==';
+    }
+
+    /**
+     * Reset the registered router.
+     */
+    public static function reset(): void
+    {
+        self::$router = null;
     }
 }
