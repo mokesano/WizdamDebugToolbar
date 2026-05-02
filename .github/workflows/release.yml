@@ -1,7 +1,7 @@
 # Workflow: Release Otomatis (Semantic Release) untuk Library PHP
 #
 # Deskripsi:
-#   Workflow ini berjalan setiap kali ada push ke branch `main`.
+#   Workflow ini berjalan setiap kali ada push ke branch `master` (bukan `main`).
 #   Ia akan menganalisis commit-commit baru, menentukan versi rilis
 #   berikutnya berdasarkan aturan Semantic Versioning (major.minor.patch),
 #   membuat Git tag, dan menerbitkan GitHub Release.
@@ -18,11 +18,11 @@
 
 name: Release Otomatis (Semantic Release)
 
-# Jalankan workflow ketika ada push ke branch main
+# Jalankan workflow ketika ada push ke branch master (default branch repositori)
 on:
   push:
     branches:
-      - main
+      - master
 
 # Izin yang diperlukan untuk membuat release dan tag
 permissions:
