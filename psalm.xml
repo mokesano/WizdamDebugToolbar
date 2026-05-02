@@ -13,18 +13,10 @@
     findUnusedCode="false"
 >
     <projectFiles>
-        <directory name="app/" />
-        <directory name="public/" />
-        <directory name="system/" />
+        <directory name="src/" />
+        <directory name="config/" />
         <directory name="tests/" />
-        <file name="spark" />
         <ignoreFiles>
-            <directory name="app/Views" />
-            <directory name="system/Commands/Generators/Views" />
-            <directory name="system/Validation/Views" />
-            <directory name="tests/system/View/Views" />
-            <directory name="tests/_support/View/Views" />
-            <directory name="system/ThirdParty" />
             <directory name="vendor" />
         </ignoreFiles>
     </projectFiles>
@@ -32,7 +24,7 @@
     <issueHandlers>
         <UndefinedGlobalVariable>
             <errorLevel type="suppress">
-                <directory name="tests/_support/View/Cells" />
+                <directory name="tests/" />
             </errorLevel>
         </UndefinedGlobalVariable>
     </issueHandlers>
